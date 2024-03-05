@@ -11,6 +11,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -19,30 +21,40 @@ import java.util.stream.Collectors;
 
 @Controller
 public class StudentController {
-    
+
     @PostMapping("/student")
-    public ResponseEntity<?> addStudent(@RequestBody Student student) throws JsonProcessingException {//데이터를 JSON으로 받을때는 @RequestBody를 붙인다
-//        List<Student> studentList = new ArrayList<>();
-//        int lastId = 0;
-//        if (students != null) {
-//            if (!students.isBlank()) {
-//                ObjectMapper studentsCookie = new ObjectMapper();
-//                studentList = studentsCookie.readValue(students, List.class);
-//                lastId = studentList.get(studentList.size() - 1).getStudentId();
-//            }
-//        }
-//        student.setStudentId(lastId + 1);
-//        ObjectMapper newStudentList = new ObjectMapper();
-//        String newStudents = newStudentList.writeValueAsString(studentList);
-        //쿠키 임시데이터를 저장할 개인 저장소
+    public ResponseEntity<?> addStudent(@CookieValue(required = false) String students, @RequestBody Student student) throws JsonProcessingException, UnsupportedEncodingException {
+        ObjectMapper objectMapper = new ObjectMapper();
+        List<Student> studentList = new ArrayList<>();
+        int lastId = 0;
+        System.out.println(students);
+
+        if(students != null) {
+            if(!students.isBlank()) {
+                for(Object object : objectMapper.readValue(students, List.class)) {//오브젝트 형태로 담긴 리스트의 객체 하나씩 꺼낸서
+                    Map<String, Object> studentMap = (Map<String, Object>) object;//map으로 형 변환 하고
+                    studentList.add(objectMapper.convertValue(studentMap, Student.class));//student 객체로 형변환 하여 리스트에 넣는다.
+                }
+                lastId = studentList.get(studentList.size() - 1).getStudentId();
+            }
+        }
+
+        student.setStudentId(lastId + 1);
+        studentList.add(student);
+
+        String studentListJson = objectMapper.writeValueAsString(studentList);//객체를 JSON으로
+
+        System.out.println(studentListJson);
         ResponseCookie responseCookie = ResponseCookie
-                .from("test", "test_data")
+                .from("students", URLEncoder.encode(studentListJson, "UTF-8"))//쿠키 키값과 매개변수의 변수명 일치
                 .httpOnly(true)
                 .secure(true)
                 .path("/")
                 .maxAge(60)
                 .build();
-        //"큰따옴표가 저장이 안됨 - JSON의 형식의 경우 큰따옴표를 사용하기에 저장이 안됨
+
+        // (")문자 저장x
+
         return ResponseEntity
                 .created(null)
                 .header(HttpHeaders.SET_COOKIE, responseCookie.toString())
@@ -50,10 +62,12 @@ public class StudentController {
     }
 
 
+
     @GetMapping("/student")
     @ResponseBody
     public ResponseEntity<?> getStudentInfo(StudentReqDTO studentReqDTO) {
         System.out.println(studentReqDTO);
+        StringBuilder stringBuilder = new StringBuilder();
 
         return ResponseEntity.ok().body(studentReqDTO.toRespDTO());
 
