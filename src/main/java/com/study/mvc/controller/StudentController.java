@@ -67,12 +67,9 @@ public class StudentController {
     @ResponseBody
     public ResponseEntity<?> getStudentInfo(StudentReqDTO studentReqDTO) {
         System.out.println(studentReqDTO);
-        StringBuilder stringBuilder = new StringBuilder();
-
         return ResponseEntity.ok().body(studentReqDTO.toRespDTO());
-
     }
-    @GetMapping("/student/{studentId}")
+//    @GetMapping("/student/{studentId}")
     public ResponseEntity<?> getStudent(@PathVariable("studentId") int id) {//주소에서 값을 가져올 때 사용
         List<Student> studentList = List.of(
                 new Student(1 ,"조성민"),
